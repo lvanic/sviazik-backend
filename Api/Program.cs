@@ -1,14 +1,13 @@
 using Api.Data;
 using Api.Hubs;
 using Api.Infrastructure;
-using Api.Interfaces;
-using Api.Services;
 using Api.Utils;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Net.Http.Headers;
 using System.Security.Claims;
+
+using SameSiteMode = Microsoft.AspNetCore.Http.SameSiteMode;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,33 +17,43 @@ builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-Console.WriteLine(builder.Host);
-
 TokenOptions.Initialize(builder.Configuration);
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+var myAuthenticationScheme = "JWT_OR_COOKIE";
+builder.Services.AddAuthentication(myAuthenticationScheme)
+    .AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = TokenOptions.ISSUER,
+        ValidateAudience = true,
+        ValidAudience = TokenOptions.AUDIENCE,
+        ValidateLifetime = true,
+        IssuerSigningKey = TokenOptions.GetSymmeetricSecurityKey(),
+        ValidateIssuerSigningKey = true,
+    };
+})
     .AddCookie(options =>
     {
         options.Cookie.Name = "AuthorizeCookie";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.None;
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
-
-    })
-    .AddJwtBearer(options =>
+    }).AddPolicyScheme(myAuthenticationScheme, myAuthenticationScheme, options =>
     {
-        options.RequireHttpsMetadata = false;
-        options.TokenValidationParameters = new TokenValidationParameters
+        options.ForwardDefaultSelector = context =>
         {
-            ValidateIssuer = true,
-            ValidIssuer = TokenOptions.ISSUER,
-            ValidateAudience = true,
-            ValidAudience = TokenOptions.AUDIENCE,
-            ValidateLifetime = true,
-            IssuerSigningKey = TokenOptions.GetSymmeetricSecurityKey(),
-            ValidateIssuerSigningKey = true,
+            string authorization = context.Request.Headers[HeaderNames.Authorization];
+            if (!string.IsNullOrEmpty(authorization) && authorization.StartsWith("Bearer "))
+                return "Bearer";
+
+            return "Cookies";
         };
     });
+
+
 
 builder.Services.AddAuthorization(options =>
 {
