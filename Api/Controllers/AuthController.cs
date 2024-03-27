@@ -2,9 +2,9 @@
 using Api.Dto;
 using Api.Interfaces;
 using Api.Models;
-using Api.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -32,12 +32,16 @@ namespace Api.Controllers
         [Authorize]
         public async Task<IActionResult> GetUser()
         {
-            var userId = Convert.ToInt32(HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var email = HttpContext.User.FindFirstValue(ClaimTypes.Email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
             if (user == null)
                 return NotFound();
 
             var token = await _authorizationService.GenerateJwt(user);
+            var principal = _authorizationService.GetClaimsPrincipal(user);
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
             var response = new LoginResponse
             {
                 Email = user.Email,
@@ -62,6 +66,10 @@ namespace Api.Controllers
                 return Unauthorized("Invalid email or password.");
 
             var token = await _authorizationService.GenerateJwt(user);
+            var principal = _authorizationService.GetClaimsPrincipal(user);
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
             var response = new LoginResponse
             {
                 Email = user.Email,

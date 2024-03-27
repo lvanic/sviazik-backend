@@ -1,9 +1,13 @@
 using Api.Data;
 using Api.Hubs;
+using Api.Infrastructure;
 using Api.Interfaces;
 using Api.Services;
+using Api.Utils;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +18,10 @@ builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+Console.WriteLine(builder.Host);
+
+TokenOptions.Initialize(builder.Configuration);
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -22,6 +30,20 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SameSite = SameSiteMode.None;
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
 
+    })
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = TokenOptions.ISSUER,
+            ValidateAudience = true,
+            ValidAudience = TokenOptions.AUDIENCE,
+            ValidateLifetime = true,
+            IssuerSigningKey = TokenOptions.GetSymmeetricSecurityKey(),
+            ValidateIssuerSigningKey = true,
+        };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -49,9 +71,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString);
 });
 
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<ICryptoService, CryptoService>();
-builder.Services.AddScoped<RoomModelService, RoomService>();
+DependencyInjection.RegisterDependencies(builder.Services);
+
 
 var app = builder.Build();
 

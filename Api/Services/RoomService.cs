@@ -7,7 +7,7 @@ using PagedList;
 
 namespace Api.Services
 {
-    public class RoomService : RoomModelService
+    public class RoomService : IRoomModelService
     {
         private readonly AppDbContext _context;
 
@@ -126,6 +126,11 @@ namespace Api.Services
                 .FirstOrDefaultAsync(r => r.Messages.Any(m => m.Id == messageId));
 
             return room;
+        }
+
+        public async Task<RoomModel> GetRoomById(int id)
+        {
+            return await _context.Rooms.FindAsync(id);
         }
     }
 }

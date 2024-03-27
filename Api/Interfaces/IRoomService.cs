@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Api.Interfaces
 {
-    public interface RoomModelService
+    public interface IRoomModelService
     {
         public Task<Pagination<RoomModel>> GetRoomsForUser(int userId, int page, int limit);
         public Task<RoomModel> UpdateRoom(RoomModel room);
