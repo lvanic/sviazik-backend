@@ -11,9 +11,9 @@ namespace Api.Controllers
     [ApiController]
     public class RoomsController : ControllerBase
     {
-        private readonly IRoomModelService _roomService;
+        private readonly IRoomService _roomService;
 
-        public RoomsController(IRoomModelService roomService)
+        public RoomsController(IRoomService roomService)
         {
             _roomService = roomService;
         }

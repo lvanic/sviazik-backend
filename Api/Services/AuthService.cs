@@ -32,6 +32,25 @@ namespace Api.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        public async Task<ClaimsPrincipal> VerifyJwt(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Secret"]);
+
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                RequireExpirationTime = true,
+                ValidateLifetime = true
+            };
+
+            SecurityToken validatedToken;
+            return tokenHandler.ValidateToken(token, tokenValidationParameters, out validatedToken);
+        }
+
         public ClaimsPrincipal GetClaimsPrincipal(UserModel user)
         {
             var claims = GetClaims(user);

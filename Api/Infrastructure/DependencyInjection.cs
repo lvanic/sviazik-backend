@@ -15,7 +15,7 @@ namespace Api.Infrastructure
             services.AddScoped<IJoinedRoomService, JoinedRoomService>();
             services.AddScoped<IMessageService, MessageService>();
             services.AddScoped<IPeerService, PeerService>();
-            services.AddScoped<IRoomModelService, RoomService>();
+            services.AddScoped<IRoomService, RoomService>();
             services.AddScoped<IUserService, UserService>();
         }
     }

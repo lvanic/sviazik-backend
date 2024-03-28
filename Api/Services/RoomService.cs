@@ -7,7 +7,7 @@ using PagedList;
 
 namespace Api.Services
 {
-    public class RoomService : IRoomModelService
+    public class RoomService : IRoomService
     {
         private readonly AppDbContext _context;
 
