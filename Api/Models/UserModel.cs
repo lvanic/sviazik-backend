@@ -15,6 +15,8 @@ namespace Api.Models
         [MaxLength(255)]
         public string Username { get; set; }
 
+        public string Image { get; set; }
+
         [Column("email")]
         [MaxLength(255)]
         public string Email { get; set; }
@@ -22,7 +24,6 @@ namespace Api.Models
         [Column("password")]
         [JsonIgnore]
         public string Password { get; set; }
-
 
         public List<RoomModel> Rooms { get; set; }
 
