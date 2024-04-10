@@ -23,13 +23,14 @@ namespace Api.Services
              .Where(x => x.Users.Contains(user))
              .Include(x => x.Messages)
              .OrderByDescending(x => x.Messages.OrderByDescending(m => m.UpdatedAt).FirstOrDefault().UpdatedAt)
+             .OrderByDescending(y => y.UpdatedAt)
              .ToPagedList(page, limit);
 
             var pagination = new Pagination<RoomModel>
             {
                 Page = page,
                 Limit = limit,
-                TotalItems = rooms.Count,
+                TotalItems = _context.Rooms.Count(),
                 Items = rooms
             };
 
@@ -62,15 +63,17 @@ namespace Api.Services
 
         public async Task<RoomModel> CreateRoom(RoomModel room, UserModel creator)
         {
+            var creatorDb = await _context.Users.FindAsync(creator.Id);
             var RoomModel = new RoomModel
             {
                 Name = room.Name,
                 Description = room.Description,
-                Admins = new List<UserModel> { creator },
-                Users = new List<UserModel> { creator }
+                Admins = new List<UserModel> { creatorDb },
+                Users = new List<UserModel> { creatorDb }
             };
 
             await _context.Rooms.AddAsync(RoomModel);
+            await _context.SaveChangesAsync();
 
             return RoomModel;
         }
@@ -86,7 +89,7 @@ namespace Api.Services
 
         public async Task<RoomModel> EnterRoom(RoomModel room, UserModel user)
         {
-            var RoomModel = await _context.Rooms.FindAsync(room.Id);
+            var RoomModel = await _context.Rooms.Include(x => x.Users).FirstOrDefaultAsync(x => x.Id == room.Id);
             if (RoomModel == null || RoomModel.Users.Any(u => u.Id == user.Id))
             {
                 return null;
@@ -130,7 +133,12 @@ namespace Api.Services
 
         public async Task<RoomModel> GetRoomById(int id)
         {
-            return await _context.Rooms.FindAsync(id);
+            return await _context.Rooms
+                .Include(x => x.Users)
+                .Include(x => x.Messages)
+                .Include(x => x.Admins)
+                .Where(x => x.Id == id)
+                .FirstOrDefaultAsync();
         }
     }
 }

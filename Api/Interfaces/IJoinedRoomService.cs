@@ -13,5 +13,6 @@ namespace Api.Interfaces
         public Task DeleteBySocketIdAsync(string socketId);
         public Task DeleteAllFromRoomAsync(RoomModel room);
         public Task DeleteAllAsync();
+        public Task<IEnumerable<JoinedRoomModel>> GetAll();
     }
 }

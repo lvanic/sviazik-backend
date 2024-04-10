@@ -4,7 +4,6 @@ using Api.Interfaces;
 using Api.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -50,7 +49,8 @@ namespace Api.Controllers
                 AccessToken = token,
                 TokenType = "JWT",
                 ExpiresIn = 10000,
-                PublicKey = "publicKey"
+                PublicKey = "publicKey",
+                Image = user.Image
             };
 
             return Ok(response);
@@ -78,7 +78,8 @@ namespace Api.Controllers
                 AccessToken = token,
                 TokenType = "JWT",
                 ExpiresIn = 10000,
-                PublicKey = "publicKey"
+                PublicKey = "publicKey",
+                Image = user.Image
             };
 
             return Ok(response);
@@ -101,7 +102,7 @@ namespace Api.Controllers
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
 
-            return Created();
+            return Created("api/auth/register", newUser);
         }
     }
 }

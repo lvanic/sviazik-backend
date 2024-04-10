@@ -26,6 +26,7 @@ namespace Api.Services
         {
             return await _context.Messages
                 .Include(m => m.User)
+                .Include(m => m.Room)
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
 

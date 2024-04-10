@@ -17,7 +17,7 @@ namespace Api.Models
         [Column(TypeName = "nvarchar(500)")]
         public string Description { get; set; }
 
-        public string Image { get; set; }
+        public string? Image { get; set; }
 
         public List<UserModel> Users { get; set; }
 

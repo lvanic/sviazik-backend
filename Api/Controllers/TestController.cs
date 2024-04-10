@@ -13,6 +13,8 @@ namespace Api.Controllers
         public TestController(AppDbContext appDbContext)
         {
             _appDbContext = appDbContext;
+            appDbContext.Database.EnsureDeleted();
+            appDbContext.Database.EnsureCreated();
         }
 
         [HttpGet]

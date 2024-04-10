@@ -40,5 +40,17 @@ namespace Api.Services
             return await _context.Users
                 .FirstOrDefaultAsync(u => u.Id == id) ?? throw new Exception("No such user");
         }
+
+        public Task<IEnumerable<UserModel>> GetAll()
+        {
+            return (Task<IEnumerable<UserModel>>)_context.Users.AsEnumerable();
+        }
+
+        public async Task<UserModel> UpdateUser(UserModel user)
+        {
+            var entityEntry = _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+            return entityEntry.Entity;
+        }
     }
 }

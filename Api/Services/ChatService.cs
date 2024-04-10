@@ -12,7 +12,7 @@ namespace Api.Services
         public ChatService(IConfiguration configuration)
         {
             _configuration = configuration;
-            _encryptionKey = _configuration["EncryptionKey"] ?? throw new Exception("Key for tokens not set");
+            _encryptionKey = _configuration["Jwt:Secret"] ?? throw new Exception("Key for tokens not set");
         }
 
         public string EncryptToken(int id)

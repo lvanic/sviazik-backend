@@ -8,5 +8,6 @@
         public string TokenType { get; set; }
         public int ExpiresIn { get; set; }
         public string PublicKey { get; set; }
+        public string Image { get; set; }
     }
 }

@@ -15,7 +15,7 @@ namespace Api.Models
         [MaxLength(255)]
         public string Username { get; set; }
 
-        public string Image { get; set; }
+        public string? Image { get; set; }
 
         [Column("email")]
         [MaxLength(255)]

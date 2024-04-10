@@ -2,7 +2,6 @@
 using Api.Interfaces;
 using Api.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 
 namespace Api.Services
 {
@@ -91,6 +90,10 @@ namespace Api.Services
         {
             _context.JoinedRooms.RemoveRange(_context.JoinedRooms);
             await _context.SaveChangesAsync();
+        }
+        public async Task<IEnumerable<JoinedRoomModel>> GetAll()
+        {
+            return await _context.JoinedRooms.ToListAsync();
         }
     }
 }

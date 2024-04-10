@@ -10,5 +10,7 @@ namespace Api.Interfaces
         public Task<UserModel> FindByUsernameAsync(string username);
         public Task<UserModel> FindByEmailAsync(string email);
         public Task<UserModel> GetOneAsync(int id);
+        public Task<IEnumerable<UserModel>> GetAll();
+        public Task<UserModel> UpdateUser(UserModel user);
     }
 }

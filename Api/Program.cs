@@ -1,18 +1,23 @@
 using Api.Data;
 using Api.Hubs;
 using Api.Infrastructure;
+using Api.Services;
 using Api.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using System.Security.Claims;
-
+using System.Text.Json.Serialization;
 using SameSiteMode = Microsoft.AspNetCore.Http.SameSiteMode;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR().AddJsonProtocol(options =>
+{
+    options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    options.PayloadSerializerOptions.WriteIndented = true;
+}); 
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -41,6 +46,7 @@ builder.Services.AddAuthentication(myAuthenticationScheme)
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.None;
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.Cookie.Path = "/";
     }).AddPolicyScheme(myAuthenticationScheme, myAuthenticationScheme, options =>
     {
         options.ForwardDefaultSelector = context =>
@@ -81,6 +87,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 
 DependencyInjection.RegisterDependencies(builder.Services);
+
+builder.Services.AddHostedService<UserCleanupService>();
 
 
 var app = builder.Build();

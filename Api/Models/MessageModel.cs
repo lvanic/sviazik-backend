@@ -20,5 +20,6 @@ namespace Api.Models
         [ForeignKey("Room")]
         public int RoomId { get; set; }
         public RoomModel Room { get; set; }
+        //public DateTime LastMessageTime { get; set; }
     }
 }
