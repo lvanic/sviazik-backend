@@ -84,7 +84,9 @@ namespace Api.Services
             if (RoomModel != null)
             {
                 _context.Rooms.Remove(RoomModel);
+                _context.SaveChanges();
             }
+            
         }
 
         public async Task<RoomModel> EnterRoom(RoomModel room, UserModel user)
@@ -103,7 +105,7 @@ namespace Api.Services
 
         public async Task RemoveUser(int roomId, UserModel user)
         {
-            var RoomModel = await _context.Rooms.FindAsync(roomId);
+            var RoomModel = await _context.Rooms.Include(x => x.Users).Where(x => x.Id == roomId).FirstOrDefaultAsync();
             if (RoomModel == null)
             {
                 return;

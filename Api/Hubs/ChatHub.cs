@@ -4,7 +4,9 @@ using Api.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Security.Claims;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Api.Hubs
 {
@@ -19,6 +21,9 @@ namespace Api.Hubs
         private readonly IMessageService _messageService;
         private readonly ICallRoomService _callService;
         private readonly IChatService _chatService;
+        private readonly IPeerService _peerService;
+        private readonly IConfiguration _configuration;
+
 
         public ChatHub(
             IAuthService authService,
@@ -28,7 +33,9 @@ namespace Api.Hubs
             IJoinedRoomService joinedRoomService,
             IMessageService messageService,
             ICallRoomService callService,
-            IChatService chatService)
+            IChatService chatService,
+            IPeerService peerService,
+            IConfiguration configuration)
         {
             _authService = authService;
             _userService = userService;
@@ -38,6 +45,8 @@ namespace Api.Hubs
             _messageService = messageService;
             _callService = callService;
             _chatService = chatService;
+            _peerService = peerService;
+            _configuration = configuration;
         }
 
         public override async Task OnConnectedAsync()
@@ -74,7 +83,32 @@ namespace Api.Hubs
                 {
                     await Clients.Client(user.SocketId).SendAsync("userLeaved", new { onlineCount = joinUsers.Count() - 1 });
                 }
-                await _joinedRoomService.DeleteBySocketIdAsync(Context.ConnectionId);
+
+
+
+                var userC = (UserModel)Context.Items["User"];
+                var userDb = await _userService.GetOneAsync(userC.Id);
+                await _joinedRoomService.DeleteByUserIdAsync(userDb.Id);
+
+                var call = await _callService.FindByUser(userDb);
+                if (call != null)
+                {
+                    var peerUser = await _peerService.GetOneByUserAsync(userDb);
+                    await _peerService.DeletePeerUserAsync(peerUser);
+                    var connectedUsers = await _connectedUserService.FindByRoomAsync(call.Room);
+
+                    var answer = new AnswerDisconnectCall { PeerId = peerUser.PeerId };
+
+                    foreach (var user in connectedUsers)
+                    {
+                        await Clients.User(user.Id.ToString()).SendAsync("userDisconected", answer);
+                    }
+
+                    if (call.PeersUsers.Count == 0)
+                    {
+                        await _callService.DeleteOne(call);
+                    }
+                }
             }
             catch
             {
@@ -125,8 +159,7 @@ namespace Api.Hubs
             var joinUsers = await _joinedRoomService.FindByRoomAsync(roomHandler);
             var userDb = await _userService.FindByEmailAsync(Context.User.FindFirstValue(ClaimTypes.Email));
             await _joinedRoomService.CreateAsync(new JoinedRoomModel { SocketId = Context.ConnectionId, User = userDb, Room = roomHandler });
-            var shareString = "qwerty";
-            //_configService.Get("CLIENT_SERVER") + $"/connect?token={await _chatService.EncryptToken(roomHandler.Id)}";
+            var shareString = _configuration["ClientHost"] + $"/connect?token={_chatService.EncryptToken(roomHandler.Id)}";
             var onlineCount = await _joinedRoomService.CountByRoomAsync(roomHandler);
 
             await Clients.Caller.SendAsync("messages", new
@@ -193,7 +226,8 @@ namespace Api.Hubs
                     RoomId = room.Id,
                     UserId = user.Id,
                     CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    UpdatedAt = DateTime.Now,
+                    MessageType = MessageType.System
                 };
                 var createdMessage = await _messageService.Create(messageHandler);
                 var joinedUsers = await _joinedRoomService.FindByRoomAsync(room);
@@ -207,7 +241,7 @@ namespace Api.Hubs
                         var messages = await _messageService.FindMessagesForRoom(room, new PaginationOptions { Limit = 50, Page = 1 });
                         var roomHandler = await _roomService.GetRoomById(room.Id);
                         var callRoom = await _callService.FindByRoom(roomHandler);
-                        var shareString = "qwerty";
+                        var shareString = _configuration["ClientHost"] + $"/connect?token={_chatService.EncryptToken(roomHandler.Id)}";
                         var onlineCount = await _joinedRoomService.CountByRoomAsync(roomHandler);
                         await Clients.Client(userJoin.SocketId).SendAsync("messages", new
                         {
@@ -235,7 +269,6 @@ namespace Api.Hubs
             var userDb = await _userService.FindByEmailAsync(Context.User.FindFirstValue(ClaimTypes.Email));
             var roomHandler = await _roomService.EnterRoom(room, userDb);
 
-            //await _joinedRoomService.CreateAsync(new JoinedRoomModel { SocketId = Context.ConnectionId, User = userDb, Room = roomHandler });
 
             var connectedUser = await _connectedUserService.FindByRoomAsync(room);
             var joinedUsers = await _joinedRoomService.FindByRoomAsync(room);
@@ -248,7 +281,9 @@ namespace Api.Hubs
                     RoomId = roomHandler.Id,
                     UserId = ((UserModel)Context.Items["User"]).Id,
                     CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    UpdatedAt = DateTime.Now,
+                    MessageType = MessageType.System
+
                 };
                 var createdMessage = await _messageService.Create(messageHandler);
 
@@ -261,7 +296,7 @@ namespace Api.Hubs
                         var messages = await _messageService.FindMessagesForRoom(room, new PaginationOptions { Limit = 50, Page = 1 });
                         var roomHand = await _roomService.GetRoomById(room.Id);
                         var callRoom = await _callService.FindByRoom(roomHandler);
-                        var shareString = "qwerty";
+                        var shareString = _configuration["ClientHost"] + $"/connect?token={_chatService.EncryptToken(roomHandler.Id)}";
                         var onlineCount = await _joinedRoomService.CountByRoomAsync(roomHand);
 
                         await Clients.Client(user.SocketId).SendAsync("messages", new
@@ -297,7 +332,7 @@ namespace Api.Hubs
             var messages = await _messageService.FindMessagesForRoom(room, new PaginationOptions { Limit = 50, Page = 1 });
             var roomHandler = await _roomService.GetRoomById(room.Id);
             var callRoom = await _callService.FindByRoom(roomHandler);
-            var shareString = "qwerty";
+            var shareString = _configuration["ClientHost"] + $"/connect?token={_chatService.EncryptToken(roomHandler.Id)}";
 
             var onlineCount = await _joinedRoomService.CountByRoomAsync(roomHandler);
             await Clients.Client(Context.ConnectionId).SendAsync("messages", new
@@ -308,6 +343,18 @@ namespace Api.Hubs
                 shareString,
                 onlineCount
             });
+        }
+
+        public async Task DeleteRoom(RoomModel room)
+        {
+            var roomToRemove = await _roomService.GetRoomById(room.Id);
+            var jonedUsers = await _joinedRoomService.FindByRoomAsync(room);
+            foreach(var jonedUser in jonedUsers)
+            {
+                await Clients.Client(jonedUser.SocketId).SendAsync("removedFromRoom", room);
+            }
+            await _roomService.DeleteRoom(roomToRemove);
+
         }
 
         public async Task LeaveRoom()
@@ -321,6 +368,22 @@ namespace Api.Hubs
                 await Clients.Client(user.SocketId).SendAsync("userLeaved", new { onlineCount });
             }
         }
+        public async Task ExitRoom(RoomModel room)
+        {
+            var userDb = await _userService.FindByEmailAsync(Context.User.FindFirstValue(ClaimTypes.Email));
+            var joinUsers = await _joinedRoomService.FindBySocketIdAsync(Context.ConnectionId);
+            await _joinedRoomService.DeleteBySocketIdAsync(Context.ConnectionId);
+            await _roomService.RemoveUser(room.Id, userDb);
+
+            var onlineCount = await _joinedRoomService.CountByRoomAsync(joinUsers.First().Room);
+
+            await Clients.Caller.SendAsync("removedFromRoom", room);
+
+            foreach (var user in joinUsers)
+            {
+                await Clients.Client(user.SocketId).SendAsync("userLeaved", new { onlineCount });
+            }
+        }
 
         public async Task AddMessage(MessageModel message)
         {
@@ -328,6 +391,7 @@ namespace Api.Hubs
             var messageHandler = message;
             messageHandler.UserId = ((UserModel)Context.Items["User"]).Id;
             messageHandler.Room = room;
+            messageHandler.MessageType = MessageType.User;
 
             var createdMessage = await _messageService.Create(messageHandler);
 
@@ -381,7 +445,8 @@ namespace Api.Hubs
                 {
                     Room = new RoomModel { Id = chatId },
                     Text = responseContent,
-                    User = user
+                    User = user,
+                    MessageType = MessageType.User
                 };
                 await AddMessage(message);
             }
@@ -409,6 +474,7 @@ namespace Api.Hubs
         {
             var messageHandler = message;
             messageHandler.User = ((UserModel)Context.Items["User"]);
+            message.MessageType = MessageType.User;
             var room = await _roomService.GetRoomById(message.Room.Id);
             var joinedUsers = await _joinedRoomService.FindByRoomAsync(room);
 
@@ -422,6 +488,110 @@ namespace Api.Hubs
         {
             var rooms = await _roomService.GetRoomsByName(name);
             await Clients.Client(Context.ConnectionId).SendAsync("searchedRooms", rooms);
+        }
+
+        public async Task CallRequest(CallRequestData data)
+        {
+            var room = await _roomService.GetRoomById(data.Room.Id);
+            var userId = ((UserModel)Context.Items["User"]).Id;
+            var user = await _userService.GetOneAsync(userId);
+            var connectedUsers = await _connectedUserService.FindByRoomAsync(data.Room);
+            var joinedUsers = await _joinedRoomService.FindByRoomAsync(data.Room);
+
+            var call = new CallRoomModel
+            {
+                Room = room,
+            };
+
+            try
+            {
+                var callHandler = await _callService.Create(call, user, data.PeerId);
+                var peerUser = new UserPeerModel
+                {
+                    User = user,
+                    PeerId = data.PeerId,
+                    Call = callHandler
+                };
+                await _peerService.AddPeerUserAsync(peerUser);
+
+                foreach (var connectedUser in connectedUsers)
+                {
+                    if (joinedUsers.FirstOrDefault(joinedUser => joinedUser.User.Id == connectedUser.User.Id) != null)
+                    {
+                        if (connectedUser.Id != Convert.ToInt32(Context.UserIdentifier))
+                        {
+                            await Clients.User(connectedUser.Id.ToString()).SendAsync("CallRequest", new
+                            {
+                                data.PeerId,
+                                data.Room,
+                                From = Context.User.Identity.Name
+                            });
+                        }
+                    }
+                    else
+                    {
+                        var notify = new//notify
+                        {
+                            ChatId = data.Room.Id,
+                            Message = $"{user.Username} начал звонок в комнате {data.Room.Name}",
+                            ChatName = data.Room.Name
+                        };
+                        await Clients.User(connectedUser.Id.ToString()).SendAsync("Notify", notify);
+                    }
+                }
+            }
+            catch
+            {
+                var callHandler = await _callService.FindByRoom(room);
+                var peerUser = new UserPeerModel
+                {
+                    User = user,
+                    PeerId = data.PeerId,
+                    Call = callHandler
+                };
+                await _peerService.AddPeerUserAsync(peerUser);
+            }
+        }
+
+        public async Task ConnectRoom(ConnectRoomData data)
+        {
+            var room = await _roomService.GetRoomById(data.Room.Id);
+            var user = await _userService.GetOneAsync(((UserModel)Context.Items["User"]).Id);
+
+            var call = await _callService.FindByRoom(room);
+            await Clients.Caller.SendAsync("Peers", call);
+
+            var peerUser = new UserPeerModel
+            {
+                User = user,
+                PeerId = data.PeerId,
+                Call = call
+            };
+            await _peerService.AddPeerUserAsync(peerUser);
+        }
+
+        public async Task DisconnectCall(DisconnectCallData data)
+        {
+            var userDb = await _userService.GetOneAsync(((UserModel)Context.Items["User"]).Id);
+
+            var call = await _callService.FindByUser(userDb);
+
+            var peerUser = await _peerService.GetOneByUserAsync(userDb);
+            await _peerService.DeletePeerUserAsync(peerUser);
+
+            var connectedUsers = await _connectedUserService.FindByRoomAsync(data.Room);
+            var answer = new AnswerDisconnectCall { PeerId = peerUser.PeerId };
+            //await Clients.All.SendAsync("userDisconected", answer);
+            foreach (var user in connectedUsers)
+            {
+                await Clients.User(user.Id.ToString()).SendAsync("userDisconected", answer);
+            }
+
+
+            if (call.PeersUsers.Count == 0)
+            {
+                await _callService.DeleteOne(call);
+            }
         }
 
     }

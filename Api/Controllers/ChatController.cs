@@ -1,7 +1,9 @@
-﻿using Api.Models;
+﻿using Api.Hubs;
+using Api.Models;
 using Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Collections.Generic;
 using System.Security.Claims;
 
@@ -14,7 +16,6 @@ namespace Api.Controllers
         private readonly UserService _userService;
         private readonly ChatService _chatService;
         private readonly RoomService _roomService;
-
         public ChatController(UserService userService, ChatService chatService, RoomService roomService)
         {
             _userService = userService;

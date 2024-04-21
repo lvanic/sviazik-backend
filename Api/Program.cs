@@ -3,6 +3,7 @@ using Api.Hubs;
 using Api.Infrastructure;
 using Api.Services;
 using Api.Utils;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
@@ -13,7 +14,16 @@ using SameSiteMode = Microsoft.AspNetCore.Http.SameSiteMode;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-builder.Services.AddSignalR().AddJsonProtocol(options =>
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 104857600; 
+});
+
+builder.Services.AddSignalR(hubOptions =>
+{
+    hubOptions.MaximumReceiveMessageSize = 104857600;
+}).AddJsonProtocol(options =>
 {
     options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     options.PayloadSerializerOptions.WriteIndented = true;
@@ -108,6 +118,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<ChatHub>("/chatHub");
-app.MapHub<ChatHub>("/callHub");
+//app.MapHub<CallHub>("/callHub");
 
 app.Run();

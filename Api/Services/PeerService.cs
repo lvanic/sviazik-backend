@@ -38,5 +38,10 @@ namespace Api.Services
             return await _context.UserPeers
                 .FirstOrDefaultAsync(p => p.PeerId == peerId) ?? throw new Exception("No such peer");
         }
+        //public async Task<UserPeerModel> GetOneByCallAsync(CallRoomModel call)
+        //{
+        //    return await _context.UserPeers
+        //        .FirstOrDefaultAsync(p => p.CallId == call.Id) ?? throw new Exception("No such peer");
+        //}
     }
 }

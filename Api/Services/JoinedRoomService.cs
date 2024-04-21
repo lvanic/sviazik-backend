@@ -19,7 +19,7 @@ namespace Api.Services
             var joinedRooms = await _context.JoinedRooms
                 .Include(jr => jr.Room)
                 .Where(jr => jr.User.Id == user.Id)
-                .ToListAsync();
+                .ToListAsync(); 
 
             return joinedRooms.Select(jr => jr.Room);
         }
@@ -70,6 +70,16 @@ namespace Api.Services
         {
             var joinedRooms = await _context.JoinedRooms
                 .Where(jr => jr.SocketId == socketId)
+                .ToListAsync();
+
+            _context.JoinedRooms.RemoveRange(joinedRooms);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteByUserIdAsync(int userId)
+        {
+            var joinedRooms = await _context.JoinedRooms
+                .Where(jr => jr.User.Id == userId)
                 .ToListAsync();
 
             _context.JoinedRooms.RemoveRange(joinedRooms);

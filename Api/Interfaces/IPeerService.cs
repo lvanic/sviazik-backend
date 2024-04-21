@@ -7,5 +7,7 @@ namespace Api.Interfaces
         public Task<UserPeerModel> AddPeerUserAsync(UserPeerModel peerUser);
         public Task DeletePeerUserAsync(UserPeerModel peerUser);
         public Task<UserPeerModel> GetOneAsync(string peerId);
+        public Task<UserPeerModel> GetOneByUserAsync(UserModel user);
+
     }
 }

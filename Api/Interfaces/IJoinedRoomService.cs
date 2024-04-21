@@ -14,5 +14,6 @@ namespace Api.Interfaces
         public Task DeleteAllFromRoomAsync(RoomModel room);
         public Task DeleteAllAsync();
         public Task<IEnumerable<JoinedRoomModel>> GetAll();
+        public Task DeleteByUserIdAsync(int userId);
     }
 }

@@ -1,5 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Api.Models
 {
@@ -12,6 +12,7 @@ namespace Api.Models
 
         [Column]
         public string Text { get; set; }
+        public MessageType? MessageType { get; set; }
 
         [ForeignKey("User")]
         public int UserId { get; set; }
@@ -20,6 +21,20 @@ namespace Api.Models
         [ForeignKey("Room")]
         public int RoomId { get; set; }
         public RoomModel Room { get; set; }
-        //public DateTime LastMessageTime { get; set; }
+        public string? Attacment { get; set; }
+        public AttachmentType? AttachmentType { get; set; }
+    }
+
+    public enum AttachmentType
+    {
+        None,
+        Image,
+        Video
+    }
+    public enum MessageType
+    {
+        None,
+        System,
+        User
     }
 }
