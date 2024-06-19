@@ -84,12 +84,12 @@ namespace Api.Hubs
                     await Clients.Client(user.SocketId).SendAsync("userLeaved", new { onlineCount = joinUsers.Count() - 1 });
                 }
 
+                await _connectedUserService.DeleteBySocketIdAsync(Context.ConnectionId);
 
 
                 var userC = (UserModel)Context.Items["User"];
                 var userDb = await _userService.GetOneAsync(userC.Id);
                 await _joinedRoomService.DeleteByUserIdAsync(userDb.Id);
-
                 var call = await _callService.FindByUser(userDb);
                 if (call != null)
                 {
@@ -101,7 +101,7 @@ namespace Api.Hubs
 
                     foreach (var user in connectedUsers)
                     {
-                        await Clients.User(user.Id.ToString()).SendAsync("userDisconected", answer);
+                        await Clients.User(user.UserId.ToString()).SendAsync("userDisconected", answer);
                     }
 
                     if (call.PeersUsers.Count == 0)
@@ -516,15 +516,15 @@ namespace Api.Hubs
 
                 foreach (var connectedUser in connectedUsers)
                 {
-                    if (joinedUsers.FirstOrDefault(joinedUser => joinedUser.User.Id == connectedUser.User.Id) != null)
+                    if (joinedUsers.Any(joinedUser => joinedUser.UserId == connectedUser.UserId))
                     {
                         if (connectedUser.Id != Convert.ToInt32(Context.UserIdentifier))
                         {
-                            await Clients.User(connectedUser.Id.ToString()).SendAsync("CallRequest", new
+                            await Clients.User(connectedUser.UserId.ToString()).SendAsync("CallRequest", new
                             {
                                 data.PeerId,
                                 data.Room,
-                                From = Context.User.Identity.Name
+                                From = user
                             });
                         }
                     }
@@ -536,12 +536,13 @@ namespace Api.Hubs
                             Message = $"{user.Username} начал звонок в комнате {data.Room.Name}",
                             ChatName = data.Room.Name
                         };
-                        await Clients.User(connectedUser.Id.ToString()).SendAsync("Notify", notify);
+                        await Clients.User(connectedUser.UserId.ToString()).SendAsync("Notify", notify);
                     }
                 }
             }
-            catch
+            catch(Exception ex)
             {
+                await Console.Out.WriteLineAsync(ex.Message);
                 var callHandler = await _callService.FindByRoom(room);
                 var peerUser = new UserPeerModel
                 {
@@ -580,11 +581,12 @@ namespace Api.Hubs
             await _peerService.DeletePeerUserAsync(peerUser);
 
             var connectedUsers = await _connectedUserService.FindByRoomAsync(data.Room);
+            var joinedUsers = await _joinedRoomService.FindByRoomAsync(data.Room);
             var answer = new AnswerDisconnectCall { PeerId = peerUser.PeerId };
             //await Clients.All.SendAsync("userDisconected", answer);
             foreach (var user in connectedUsers)
             {
-                await Clients.User(user.Id.ToString()).SendAsync("userDisconected", answer);
+                await Clients.User(user.UserId.ToString()).SendAsync("userDisconected", answer);
             }
 
 

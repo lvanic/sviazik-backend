@@ -2,7 +2,6 @@
 using Api.Interfaces;
 using Api.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 
 namespace Api.Services
 {
@@ -31,17 +30,18 @@ namespace Api.Services
 
         public async Task<IEnumerable<ConnectedUserModel>> FindByRoomAsync(RoomModel room)
         {
-            return await _context.ConnectedUsers
+            return await _context.ConnectedUsers.Include(cu => cu.User).ThenInclude(cu => cu.Rooms)
                 .Where(cu => cu.User.Rooms.Any(r => r.Id == room.Id))
-                .Include(cu => cu.User)
                 .ToListAsync();
         }
 
         public async Task DeleteBySocketIdAsync(string socketId)
         {
-            var connectedUsers = await _context.ConnectedUsers
+            var connectedUser = await _context.ConnectedUsers.Include(x => x.User)
                 .Where(cu => cu.SocketId == socketId)
-                .ToListAsync();
+                .FirstOrDefaultAsync();
+
+            var connectedUsers = await _context.ConnectedUsers.Where(u => u.User.Id == connectedUser.User.Id).ToListAsync();
 
             _context.ConnectedUsers.RemoveRange(connectedUsers);
             await _context.SaveChangesAsync();

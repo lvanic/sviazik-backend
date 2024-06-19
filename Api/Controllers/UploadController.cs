@@ -137,7 +137,7 @@ namespace Api.Controllers
 
                 foreach (var joinedUser in joinedUsers)
                 {
-                    await _hubcontext.Clients.User(joinedUser.Id.ToString()).SendAsync("messageAdded", createdMessage);
+                    await _hubcontext.Clients.User(joinedUser.UserId.ToString()).SendAsync("messageAdded", createdMessage);
                 }
 
                 return Ok(responseContent); // Верните responseContent в качестве ответа
