@@ -23,7 +23,7 @@ namespace Api.Hubs
         private readonly IChatService _chatService;
         private readonly IPeerService _peerService;
         private readonly IConfiguration _configuration;
-
+        private readonly string x = string.Empty;
 
         public ChatHub(
             IAuthService authService,
